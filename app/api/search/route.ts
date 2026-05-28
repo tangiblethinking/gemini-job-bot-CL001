@@ -21,37 +21,48 @@ export async function POST(req: Request) {
     }
 
     const query = titles.join(' OR ');
-    const siteScope = VERIFIED_DOMAINS.map(domain => `site:${domain}`).join(' OR ');
-    const scopedQuery = `(${query}) (${siteScope})`;
 
-    console.log('Executing Scoped Search:', scopedQuery);
+    // One simple request per domain — no boolean chaining — free tier compatible
+    const results = await Promise.all(
+      VERIFIED_DOMAINS.map(async (domain) => {
+        try {
+          const res = await fetch('https://google.serper.dev/search', {
+            method: 'POST',
+            headers: {
+              'X-API-KEY': serperKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ q: `${query} site:${domain}`, num: 5 })
+          });
+          const data = await res.json();
+          return (data.organic || []).map((result: any) => ({
+            title: result.title,
+            link: result.link,
+            snippet: result.snippet || '',
+            source: (() => {
+              try {
+                const hostname = new URL(result.link).hostname;
+                return hostname.replace('boards.', '').replace('jobs.', '');
+              } catch (_e) {
+                return domain;
+              }
+            })()
+          }));
+        } catch (_e) {
+          return [];
+        }
+      })
+    );
 
-    const searchResponse = await fetch('https://google.serper.dev/search', {
-      method: 'POST',
-      headers: {
-        'X-API-KEY': serperKey,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ q: scopedQuery, num: 20 })
+    // Flatten and deduplicate by link
+    const seen = new Set<string>();
+    const jobs = results.flat().filter((job) => {
+      if (seen.has(job.link)) return false;
+      seen.add(job.link);
+      return true;
     });
 
-    const searchData = await searchResponse.json();
-    console.log('Raw Serper /search Response:', JSON.stringify(searchData, null, 2));
-
-    const jobs = (searchData.organic || []).map((result: any) => ({
-      title: result.title,
-      link: result.link,
-      snippet: result.snippet || '',
-      source: (() => {
-        try {
-          const hostname = new URL(result.link).hostname;
-          return hostname.replace('boards.', '').replace('jobs.', '');
-        } catch (_e) {
-          return 'ATS Listing';
-        }
-      })()
-    }));
-
+    console.log(`Total jobs found: ${jobs.length}`);
     return NextResponse.json(jobs);
 
   } catch (error) {
