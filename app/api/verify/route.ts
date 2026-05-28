@@ -12,7 +12,7 @@ export async function POST(req: Request) {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
         await model.generateContent('ping');
         results.gemini = 'valid';
-      } catch {
+      } catch (_e) {
         results.gemini = 'invalid';
       }
     }
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
           body: JSON.stringify({ q: 'test', num: 1 })
         });
         results.serper = res.ok ? 'valid' : 'invalid';
-      } catch {
+      } catch (_e) {
         results.serper = 'invalid';
       }
     }

@@ -26,6 +26,6 @@
     "typescript": "^5"
   },
   "browser": {
-    "./node_modules/pdf-parse/lib/pdf-parse.js": false
+    "pdf-parse": false
   }
 }

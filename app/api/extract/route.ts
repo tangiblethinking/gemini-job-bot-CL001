@@ -35,7 +35,7 @@ const responseSchema = {
     }
   },
   required: ["titles", "skills", "seniority", "contact", "education"]
-} as Record<string, unknown>;
+};
 
 export async function POST(req: Request) {
   try {
@@ -63,8 +63,8 @@ export async function POST(req: Request) {
       model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
-        responseSchema
-      } as Record<string, unknown>
+        responseSchema: responseSchema as any
+      }
     });
 
     const prompt = `Extract the following from this resume text: top 3 job titles the candidate is qualified for, core skills, seniority level, contact information (name, email, phone, location), and education history. Resume text: "${rawText.substring(0, 5000)}"`;
