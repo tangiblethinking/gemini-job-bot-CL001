@@ -10,7 +10,7 @@ const rewriteSchema = {
     experience: { type: "string" }
   },
   required: ["jobTitle", "summary", "skills", "experience"]
-};
+} as Record<string, unknown>;
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +28,6 @@ export async function POST(req: Request) {
       });
       if (jinaRes.ok) {
         const jinaText = await jinaRes.text();
-        // Detect Jina failure conditions
         const jinaFailed = jinaText.trim().length < 200 || jinaText.includes('Enable JavaScript');
         jobText = jinaFailed ? '' : jinaText.substring(0, 5000);
       }
@@ -45,7 +44,9 @@ export async function POST(req: Request) {
     // Keyword extraction
     const keywordModel = genAI.getGenerativeModel({
       model: 'gemini-2.5-flash',
-      generationConfig: { responseMimeType: 'application/json' }
+      generationConfig: {
+        responseMimeType: 'application/json'
+      } as Record<string, unknown>
     });
 
     const keywordPrompt = usingFallback
@@ -60,8 +61,8 @@ export async function POST(req: Request) {
       model: 'gemini-2.5-flash',
       generationConfig: {
         responseMimeType: 'application/json',
-        responseSchema: rewriteSchema as any
-      }
+        responseSchema: rewriteSchema
+      } as Record<string, unknown>
     });
 
     const rewritePrompt = `You are an ATS resume optimization expert. Rewrite only the Summary, Skills, and Experience sections of this resume to naturally incorporate these keywords: ${keywords.join(', ')}. Do not rewrite Education or Contact info. Resume text: "${resumeText.substring(0, 4000)}"`;

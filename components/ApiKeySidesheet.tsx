@@ -1,7 +1,6 @@
 "use client";
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type KeyStatus = 'idle' | 'checking' | 'valid' | 'invalid';
 
@@ -23,26 +22,20 @@ export default function ApiKeySidesheet() {
   const verifyKeys = async () => {
     setGeminiStatus('checking');
     setSerperStatus('checking');
-
-    // Verify Gemini
     try {
-      const genAI = new GoogleGenerativeAI(geminiInput.trim());
-      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-      await model.generateContent('ping');
-      setGeminiStatus('valid');
+      const res = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          geminiKey: geminiInput.trim(),
+          serperKey: serperInput.trim()
+        })
+      });
+      const data = await res.json();
+      setGeminiStatus(data.gemini === 'valid' ? 'valid' : 'invalid');
+      setSerperStatus(data.serper === 'valid' ? 'valid' : 'invalid');
     } catch {
       setGeminiStatus('invalid');
-    }
-
-    // Verify Serper
-    try {
-      const res = await fetch('https://google.serper.dev/search', {
-        method: 'POST',
-        headers: { 'X-API-KEY': serperInput.trim(), 'Content-Type': 'application/json' },
-        body: JSON.stringify({ q: 'test', num: 1 })
-      });
-      setSerperStatus(res.ok ? 'valid' : 'invalid');
-    } catch {
       setSerperStatus('invalid');
     }
   };
